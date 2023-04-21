@@ -23,9 +23,97 @@
 	
 	<script>
 
+let particles = [];
+let numParticles = 1500;
+
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  background("#FFFFFF");
+  createCanvas(400, 400, WEBGL);
+  for (let i = 0; i < numParticles; i++) {
+    particles.push(new Particle());
+  }
+}
+
+function draw() {
+  clear();
+  camera(0, 0, 800);
+  translate(0, 0, 0);
+  rotateX(frameCount * 0.02);
+  rotateY(frameCount * 0.01);
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].update();
+    particles[i].display();
+  }
+}
+
+class Particle {
+  constructor() {
+    this.pos = createVector(random(-200, 200), random(-200, 200), random(-200, 200));
+    this.vel = createVector();
+    this.acc = createVector();
+    this.target = createVector();
+    this.home = this.pos.copy();
+    this.maxSpeed = 10;
+    this.maxForce = .01;
+    this.radius = random(2, 8);
+    this.color = color('#FFFFFF'); //161616, FFFFFF
+  }
+
+  update() {
+    this.vel.add(this.acc);
+    this.pos.add(this.vel);
+    this.acc.mult(.5);
+    this.maxSpeed = map(dist(this.pos.x, this.pos.y, this.pos.z, 0, 0, 0), 0, 200, 2, 10);
+    if (frameCount % 200 == 1) {
+      this.target = createVector(random(-100, 100), random(-100, 100), random(-100, 100));
+    }
+    if (frameCount % 600 == 1) {
+      this.home = this.pos.copy();
+    }
+    let seek = this.arrive(this.target);
+    let home = this.returnHome();
+    seek.mult(1);
+    home.mult(0.5);
+    this.applyForce(seek);
+    this.applyForce(home);
+  }
+
+  display() {
+    noStroke();
+    fill(this.color);
+    push();
+    translate(this.pos.x, this.pos.y, this.pos.z);
+    sphere(this.radius);
+    pop();
+  }
+
+  applyForce(force) {
+    this.acc.add(force);
+  }
+
+  arrive(target) {
+    let desired = p5.Vector.sub(target, this.pos);
+    let d = desired.mag(5);
+    let speed = this.maxSpeed;
+    if (d < 1) {
+      speed = map(d, 0, 100, 0, this.maxSpeed);
+    }
+    desired.setMag(speed);
+    let steer = p5.Vector.sub(desired, this.vel);
+    steer.limit(this.maxForce);
+    return steer;
+  }
+
+  returnHome() {
+    let desired = p5.Vector.sub(this.home, this.pos);
+    let d = desired.mag();
+    if (d < 1) {
+      this.vel.mult(0);
+    }
+    desired.setMag(this.maxSpeed);
+    let steer = p5.Vector.sub(desired, this.vel);
+    steer.limit(this.maxForce);
+    return steer;
+  }
 }
 
 
